@@ -96,8 +96,11 @@ dependencies {
     jarJar(implementation('org.apache.commons:commons-pool2:[2.12.0,3.0)')) {
         version { strictly '[2.12.0,3.0)'; prefer '2.12.0' }
     }
-    jarJar(implementation('org.lz4:lz4-java:[1.8.0,2.0)')) {
-        version { strictly '[1.8.0,2.0)'; prefer '1.8.0' }
+    // lz4-java: Forge 1.20.1 自带 at.yawk.lz4:lz4-java (提供 org.lz4:lz4-java capability),
+    // 与 org.lz4:lz4-java 冲突。由于 API 兼容 (都用 net.jpountz.lz4 包),
+    // 改用 at.yawk.lz4:lz4-java 避免冲突,并 jarJar 打包运行时。
+    jarJar(implementation('at.yawk.lz4:lz4-java:[1.8.1,2.0)')) {
+        version { strictly '[1.8.1,2.0)'; prefer '1.8.1' }
     }
     jarJar(implementation('org.tukaani:xz:[1.10,2.0)')) {
         version { strictly '[1.10,2.0)'; prefer '1.10' }
@@ -113,11 +116,6 @@ configurations.configureEach {
         if (details.requested.group == 'org.lwjgl') {
             details.useVersion '3.3.1'
         }
-    }
-    // 解决 lz4-java capability 冲突: Forge 依赖 at.yawk.lz4:lz4-java 与 org.lz4:lz4-java
-    // 都提供 org.lz4:lz4-java capability, 需要显式选择 org.lz4:lz4-java
-    resolutionStrategy.capabilitiesResolution.withCapability('org.lz4:lz4-java') {
-        select('org.lz4:lz4-java:0')
     }
 }
 
