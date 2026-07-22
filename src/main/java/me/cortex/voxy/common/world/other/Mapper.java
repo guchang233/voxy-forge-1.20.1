@@ -260,7 +260,7 @@ public class Mapper {
     }
 
     public int getIdForBiome(Holder<Biome> biome) {
-        String biomeId = biome.unwrapKey().get().identifier().toString();
+        String biomeId = biome.unwrapKey().get().location().toString();
         var entry = this.biome2biomeEntry.get(biomeId);
         if (entry == null) {
             entry = this.registerNewBiome(biomeId);
@@ -359,7 +359,9 @@ public class Mapper {
             if (state.getBlock() instanceof LeavesBlock) {
                 this.opacity = 15;
             } else {
-                this.opacity = state.getLightDampening();
+                // 1.20.1: getLightDampening() 改名为 getLightBlock(BlockGetter, BlockPos)
+                // 实现仅返回缓存的 this.lightBlock 字段,不使用参数,可传 null
+                this.opacity = state.getLightBlock(null, null);
             }
         }
 
@@ -378,26 +380,31 @@ public class Mapper {
 
         public static StateEntry deserialize(int id, byte[] data, boolean[] forceResave) {
             try {
-                var compound = NbtIo.readCompressed(new ByteArrayInputStream(data), NbtAccounter.unlimitedHeap());
-                if (compound.getIntOr("id", -1) != id) {
+                // 1.20.1: NbtIo.readCompressed 只有 (InputStream) 重载,无 NbtAccounter 参数;
+                // NbtAccounter.unlimitedHeap() 改为 NbtAccounter.UNLIMITED 静态字段
+                var compound = NbtIo.readCompressed(new ByteArrayInputStream(data));
+                if ((compound.contains("id") ? compound.getInt("id") : -1) != id) {
                     throw new IllegalStateException("Encoded id != expected id");
                 }
-                var bsc = compound.getCompound("block_state").orElseThrow();
+                var bsc = compound.getCompound("block_state");
                 var state = BlockState.CODEC.parse(NbtOps.INSTANCE, bsc);
-                if (state.isError()) {
+                // 1.20.1: DFU 6.0.8 的 DataResult 没有 isError() 和无参 getOrThrow()
+                // 用 result().isEmpty() 替代 isError(),用 result().get() 替代 getOrThrow()
+                if (state.result().isEmpty()) {
                     Logger.info("Could not decode blockstate, attempting fixes, error: "+ state.error().get().message());
-                    bsc = (CompoundTag) DataFixers.getDataFixer().update(References.BLOCK_STATE, new Dynamic<>(NbtOps.INSTANCE,bsc),0, SharedConstants.getCurrentVersion().dataVersion().version()).getValue();
+                    // 1.20.1: WorldVersion.dataVersion() 改名为 getDataVersion(),DataVersion.version() 改名为 getVersion()
+                    bsc = (CompoundTag) DataFixers.getDataFixer().update(References.BLOCK_STATE, new Dynamic<>(NbtOps.INSTANCE,bsc),0, SharedConstants.getCurrentVersion().getDataVersion().getVersion()).getValue();
                     state = BlockState.CODEC.parse(NbtOps.INSTANCE, bsc);
-                    if (state.isError()) {
+                    if (state.result().isEmpty()) {
                         Logger.error("Could not decode blockstate setting to air. id:" + id + " error: " + state.error().get().message());
                         return new StateEntry(id, Blocks.AIR.defaultBlockState());
                     } else {
-                        Logger.info("Fixed blockstate to: " + state.getOrThrow());
+                        Logger.info("Fixed blockstate to: " + state.result().get());
                         forceResave[0] |= true;
-                        return new StateEntry(id, state.getOrThrow());
+                        return new StateEntry(id, state.result().get());
                     }
                 } else {
-                    return new StateEntry(id, state.getOrThrow());
+                    return new StateEntry(id, state.result().get());
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -429,11 +436,12 @@ public class Mapper {
 
         public static BiomeEntry deserialize(int id, byte[] data) {
             try {
-                var compound = NbtIo.readCompressed(new ByteArrayInputStream(data), NbtAccounter.unlimitedHeap());
-                if (compound.getIntOr("id", -1) != id) {
+                // 1.20.1: NbtIo.readCompressed 只有 (InputStream) 重载,无 NbtAccounter 参数
+                var compound = NbtIo.readCompressed(new ByteArrayInputStream(data));
+                if ((compound.contains("id") ? compound.getInt("id") : -1) != id) {
                     throw new IllegalStateException("Encoded id != expected id");
                 }
-                String biome = compound.getStringOr("biome_id", null);
+                String biome = compound.contains("biome_id") ? compound.getString("biome_id") : null;
                 return new BiomeEntry(id, biome);
             } catch (IOException e) {
                 throw new RuntimeException(e);

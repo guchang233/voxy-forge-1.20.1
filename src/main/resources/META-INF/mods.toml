@@ -1,0 +1,35 @@
+modLoader = "javafml"
+loaderVersion = "${loader_version_range}"
+license = "All-Rights-Reserved"
+issueTrackerURL = "https://github.com/MCRcortex/voxy/issues"
+
+[[mods]]
+modId = "voxy"
+version = "${mod_version}"
+displayName = "Voxy"
+authors = "Cortex"
+description = '''
+Far distance rendering mod utilising LoDs.
+Ported to Forge 1.20.1 (third-party mod integrations disabled).
+'''
+
+[[dependencies.voxy]]
+    modId = "forge"
+    mandatory = true
+    versionRange = "${forge_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+[[dependencies.voxy]]
+    modId = "minecraft"
+    mandatory = true
+    versionRange = "${minecraft_version_range}"
+    ordering = "NONE"
+    side = "BOTH"
+
+# Forge 1.20.1 自带 Mixin 引导,这里声明 mixin 配置文件
+[[mixins]]
+    config = "client.voxy.mixins.json"
+
+[[mixins]]
+    config = "common.voxy.mixins.json"

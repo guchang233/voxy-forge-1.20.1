@@ -37,7 +37,8 @@ public abstract class Taskbar {
     private static ITaskbar createInterface() {
         if (SystemUtils.IS_OS_WINDOWS) {
             try {
-                return new WindowsTaskbar(Minecraft.getInstance().getWindow().handle());
+                // 1.20.1 中 Window.handle() 改名为 Window.getWindow() (返回 long GLFW 句柄)
+                return new WindowsTaskbar(Minecraft.getInstance().getWindow().getWindow());
             } catch (Exception e) {
                 Logger.error("Unable to create windows taskbar interface", e);
                 return new NoopTaskbar();

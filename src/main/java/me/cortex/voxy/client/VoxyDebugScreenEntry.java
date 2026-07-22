@@ -1,43 +1,12 @@
 package me.cortex.voxy.client;
 
-import me.cortex.voxy.client.core.IVoxyRenderSystemHolder;
-import me.cortex.voxy.client.core.VoxyRenderSystem;
-import me.cortex.voxy.commonImpl.VoxyCommon;
-import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
-import net.minecraft.client.gui.components.debug.DebugScreenEntry;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.LevelChunk;
-import org.jetbrains.annotations.Nullable;
-
-import java.util.ArrayList;
-import java.util.List;
-
-public class VoxyDebugScreenEntry implements DebugScreenEntry {
-    @Override
-    public void display(DebugScreenDisplayer lines, @Nullable Level world, @Nullable LevelChunk clientChunk, @Nullable LevelChunk chunk) {
-        if (!VoxyCommon.isAvailable()) {
-            return;
-        }
-
-        var instance = VoxyCommon.getInstance();
-        if (instance == null) {
-            return;
-        }
-
-        VoxyRenderSystem vrs = IVoxyRenderSystemHolder.getNullable();
-
-        //lines.addLineToSection();
-        List<String> instanceLines = new ArrayList<>();
-        instance.addDebug(instanceLines);
-        lines.addToGroup(Identifier.fromNamespaceAndPath("voxy", "instance_debug"), instanceLines);
-
-        if (vrs != null) {
-            List<String> renderLines = new ArrayList<>();
-            vrs.addDebugInfo(renderLines);
-            lines.addToGroup(Identifier.fromNamespaceAndPath("voxy", "render_debug"), renderLines);
-        }
-    }
-
-
+/**
+ * 1.20.1 适配:1.21+ 的 DebugScreenEntry/DebugScreenDisplayer 接口在 1.20.1 中
+ * 不存在。原实现通过 DebugScreenEntries.register() 注册自定义调试条目,1.20.1 中
+ * 调试屏幕由 DebugScreenOverlay 管理,API 完全不同。
+ *
+ * 本桩保留为空类以维持 VoxyClient.onInitializeClient() 调用链不断。
+ */
+public class VoxyDebugScreenEntry {
+    // no-op
 }

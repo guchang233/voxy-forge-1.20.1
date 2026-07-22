@@ -1,62 +1,35 @@
 package me.cortex.voxy.client;
 
-import me.cortex.voxy.client.core.IVoxyRenderSystemHolder;
 import me.cortex.voxy.client.core.util.GPUTiming;
-import me.cortex.voxy.commonImpl.VoxyCommon;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.debug.DebugScreenDisplayer;
-import net.minecraft.client.gui.components.debug.DebugScreenEntries;
-import net.minecraft.client.gui.components.debug.DebugScreenEntry;
-import net.minecraft.client.gui.components.debug.DebugScreenEntryStatus;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.chunk.LevelChunk;
-import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 1.20.1 适配:1.21+ 的 DebugScreenEntries/DebugScreenEntry/DebugScreenDisplayer/
+ * DebugScreenEntryStatus/Identifier.fromNamespaceAndPath 在 1.20.1 中均不存在。
+ * 1.20.1 的调试屏幕通过 DebugScreenOverlay + RenderGuiOverlayEvent/ClientForgeEvents
+ * 实现,API 完全不同。
+ *
+ * 本移植将 init() 与 onRebuild() 桩化为 no-op,以保留 VoxyClient.onInitializeClient()
+ * 调用链不断。若要在 1.20.1 上恢复调试信息显示,需基于 DebugScreenOverlay 重新实现。
+ */
 public class DebugEntries {
-    public static final Identifier GPU_DEBUG = Identifier.fromNamespaceAndPath("voxy", "gpu_debug");
     public static void init() {
-        DebugScreenEntries.register(Identifier.fromNamespaceAndPath("voxy", "version"), new DebugScreenEntry() {
-            @Override
-            public void display(DebugScreenDisplayer lines, @Nullable Level level, @Nullable LevelChunk levelChunk, @Nullable LevelChunk levelChunk2) {
-                if (!VoxyCommon.isAvailable()) {
-                    lines.addLine(ChatFormatting.RED + "voxy-"+VoxyCommon.MOD_VERSION);//Voxy installed, not avalible
-                    return;
-                }
-                var instance = VoxyCommon.getInstance();
-                if (instance == null) {
-                    lines.addLine(ChatFormatting.YELLOW + "voxy-" + VoxyCommon.MOD_VERSION);//Voxy avalible, no instance active
-                    return;
-                }
-                //Voxy instance active
-                lines.addLine((IVoxyRenderSystemHolder.getNullable()==null?ChatFormatting.DARK_GREEN:ChatFormatting.GREEN)+"voxy-"+VoxyCommon.MOD_VERSION);
-            }
-        });
-
-        DebugScreenEntries.register(Identifier.fromNamespaceAndPath("voxy","debug"), new VoxyDebugScreenEntry());
-
-        DebugScreenEntries.register(GPU_DEBUG, new DebugScreenEntry() {
-            @Override
-            public void display(DebugScreenDisplayer debugScreenDisplayer, @Nullable Level level, @Nullable LevelChunk levelChunk, @Nullable LevelChunk levelChunk2) {
-
-            }
-        });
+        // no-op: 1.21+ DebugScreenEntries API 不可用
     }
 
     private static boolean previousGpuDebugEnabled = false;
-    public static void onRebuild(Map<Identifier, DebugScreenEntryStatus> allStatuses, List<Identifier> enabled) {
-        var entry = allStatuses.getOrDefault(GPU_DEBUG, DebugScreenEntryStatus.NEVER);
-        if ((entry!=DebugScreenEntryStatus.NEVER)!=previousGpuDebugEnabled) {
-            previousGpuDebugEnabled ^= true;
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static void onRebuild(Map allStatuses, List enabled) {
+        // no-op: 1.21+ DebugScreenEntryStatus API 不可用,仅保留签名以便其他位置调用不报错
+        boolean nowEnabled = !enabled.isEmpty();
+        if (nowEnabled != previousGpuDebugEnabled) {
+            previousGpuDebugEnabled ^= true;
             GPUTiming.INSTANCE.setEnabled(previousGpuDebugEnabled);
             RenderStatistics.enabled = previousGpuDebugEnabled;
-            var renderer = Minecraft.getInstance().levelExtractor;
-            if (renderer!=null)renderer.allChanged();
+            // 1.20.1 中 Minecraft 没有 levelExtractor,跳过 allChanged() 调用
         }
     }
 }

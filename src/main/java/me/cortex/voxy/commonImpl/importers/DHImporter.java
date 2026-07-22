@@ -4,6 +4,7 @@ import me.cortex.voxy.common.Logger;
 import me.cortex.voxy.common.thread.Service;
 import me.cortex.voxy.common.thread.ServiceManager;
 import me.cortex.voxy.common.util.ByteBufferBackedInputStream;
+import me.cortex.voxy.common.util.IntBitOps;
 import me.cortex.voxy.common.util.Pair;
 import me.cortex.voxy.common.voxelization.VoxelizedSection;
 import me.cortex.voxy.common.voxelization.WorldVoxilizedSectionMipper;
@@ -13,7 +14,8 @@ import me.cortex.voxy.common.world.other.Mapper;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
@@ -52,6 +54,7 @@ public class DHImporter implements IDataImporter {
     private final Level world;
     private final int bottomOfWorld;
     private final int worldHeightSections;
+    // 1.20.1: Mapper.getIdForBiome 接受 Holder<Biome>,因此保留 Holder.Reference<Biome>
     private final Holder.Reference<Biome> defaultBiome;
     private final Registry<Biome> biomeRegistry;
     private final Registry<Block> blockRegistry;
@@ -99,11 +102,14 @@ public class DHImporter implements IDataImporter {
     public DHImporter(File file, WorldEngine worldEngine, Level mcWorld, ServiceManager servicePool, BooleanSupplier rateLimiter) {
         this.engine = worldEngine;
         this.world = mcWorld;
-        this.biomeRegistry = mcWorld.registryAccess().lookupOrThrow(Registries.BIOME);
-        this.defaultBiome = this.biomeRegistry.getOrThrow(Biomes.PLAINS);
-        this.blockRegistry = mcWorld.registryAccess().lookupOrThrow(Registries.BLOCK);
+        // 1.20.1: RegistryAccess.registryOrThrow 返回 Registry<T> (不是 RegistryLookup)
+        this.biomeRegistry = mcWorld.registryAccess().registryOrThrow(Registries.BIOME);
+        // 1.20.1: Registry.getHolder(ResourceKey) 返回 Optional<Holder.Reference<T>>
+        this.defaultBiome = this.biomeRegistry.getHolder(Biomes.PLAINS).orElseThrow();
+        this.blockRegistry = mcWorld.registryAccess().registryOrThrow(Registries.BLOCK);
 
-        this.bottomOfWorld = mcWorld.getMinY();
+        // 1.20.1: Level.getMinY() 不存在,改用 getMinBuildHeight()
+        this.bottomOfWorld = mcWorld.getMinBuildHeight();
         int worldHeight = mcWorld.getHeight();
         this.worldHeightSections = (worldHeight+15)/16;
 
@@ -226,8 +232,10 @@ public class DHImporter implements IDataImporter {
             if (idx == -1)
                 throw new IllegalStateException();
             {
-                var biomeRes = Identifier.parse(encEntry.substring(0, idx));
-                var biome = this.biomeRegistry.get(biomeRes).orElse(this.defaultBiome);
+                var biomeRes = new ResourceLocation(encEntry.substring(0, idx));
+                // 1.20.1: Registry.getHolder(ResourceKey) 返回 Optional<Holder.Reference<T>>
+                var biomeKey = ResourceKey.create(Registries.BIOME, biomeRes);
+                var biome = this.biomeRegistry.getHolder(biomeKey).orElse(this.defaultBiome);
                 biomeId = this.engine.getMapper().getIdForBiome(biome);
             }
             {
@@ -240,11 +248,10 @@ public class DHImporter implements IDataImporter {
                     if (sIdx != -1) {
                         bStateStr = encEntry.substring(sIdx + STATE_STRING_SEPARATOR.length());
                     }
-                    var bId = Identifier.parse(encEntry.substring(b, sIdx != -1 ? sIdx : encEntry.length()));
-                    var maybeBlock = this.blockRegistry.get(bId);
-                    Block block = Blocks.AIR;
-                    if (maybeBlock.isPresent()) {
-                        block = maybeBlock.get().value();
+                    var bId = new ResourceLocation(encEntry.substring(b, sIdx != -1 ? sIdx : encEntry.length()));
+                    Block block = this.blockRegistry.get(bId);
+                    if (block == null) {
+                        block = Blocks.AIR;
                     }
                     var state = block.defaultBlockState();
                     if (bStateStr != null && block != Blocks.AIR) {
@@ -339,8 +346,8 @@ public class DHImporter implements IDataImporter {
         byte[] col = ctx.colScratch;
         for (int x = 0; x < 64; x++) {
             for (int z = 0; z < 64; z++) {
-                int bPos = Integer.expand(x&0xF, 0b00_00_0000_0000_1111) |
-                           Integer.expand(z, 0b00_11_0000_1111_0000);
+                int bPos = IntBitOps.expand(x&0xF, 0b00_00_0000_0000_1111) |
+                           IntBitOps.expand(z, 0b00_11_0000_1111_0000);
                 short cl = stream.readShort();
                 if (cl < 0) {
                     throw new IllegalStateException();
@@ -356,8 +363,8 @@ public class DHImporter implements IDataImporter {
                     //    int a = 0;
                     //}
                     //Insert all entries into data cache
-                    startY = Integer.expand(startY, 0b11111111_00_1111_0000_0000);
-                    endY = Integer.expand(endY, 0b11111111_00_1111_0000_0000);
+                    startY = IntBitOps.expand(startY, 0b11111111_00_1111_0000_0000);
+                    endY = IntBitOps.expand(endY, 0b11111111_00_1111_0000_0000);
                     final int Msk = 0b11111111_00_1111_0000_0000;
                     final int iMsk1 = (~Msk)+1;
                     for (int y = startY; y != endY; y = (y+iMsk1)&Msk) {

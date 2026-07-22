@@ -2,9 +2,10 @@ package me.cortex.voxy.common.util;
 
 import me.cortex.voxy.common.Logger;
 import org.lwjgl.system.*;
-import org.lwjgl.system.windows.Kernel32;
 
 //Platform specific code to assist in thread utilities
+//NOTE: Forge 1.20.1 用的 LWJGL 3.3.1 中没有 org.lwjgl.system.windows.Kernel32 类 (3.3.2+ 才引入),
+//因此本类直接用 SharedLibrary + JNI 调用 Kernel32 函数,等价行为。
 public class ThreadUtils {
     public static final int WIN32_THREAD_PRIORITY_TIME_CRITICAL = 15;
     public static final int WIN32_THREAD_PRIORITY_LOWEST = -2;
@@ -12,13 +13,21 @@ public class ThreadUtils {
     public static final int WIN32_THREAD_MODE_BACKGROUND_END = 0x00020000;
     public static final boolean isWindows = Platform.get() == Platform.WINDOWS;
     public static final boolean isLinux = Platform.get() == Platform.LINUX;
+    // Win32 GetCurrentThread() 总是返回 pseudo handle -1L (代表当前线程)
+    private static final long CURRENT_THREAD_PSEUDO_HANDLE = -1L;
     private static final long SetThreadPriority;
     private static final long SetThreadSelectedCpuSetMasks;
     private static final long schedSetaffinity;
     static {
         if (isWindows) {
-            SetThreadPriority = Kernel32.getLibrary().getFunctionAddress("SetThreadPriority");
-            SetThreadSelectedCpuSetMasks = Kernel32.getLibrary().getFunctionAddress("SetThreadSelectedCpuSetMasks");
+            SharedLibrary lib = null;
+            try {
+                lib = APIUtil.apiCreateLibrary("kernel32");
+            } catch (Throwable t) {
+                Logger.error("Failed to load kernel32", t);
+            }
+            SetThreadPriority = lib != null ? lib.getFunctionAddress("SetThreadPriority") : 0L;
+            SetThreadSelectedCpuSetMasks = lib != null ? lib.getFunctionAddress("SetThreadSelectedCpuSetMasks") : 0L;
         } else {
             SetThreadPriority = 0;
             SetThreadSelectedCpuSetMasks = 0;
@@ -48,7 +57,8 @@ public class ThreadUtils {
         }
 
         if (masks == null) {
-            int retVal = JNI.invokePPCI(Kernel32.GetCurrentThread(), 0, (short) 0, SetThreadSelectedCpuSetMasks);
+            // LWJGL 3.3.1 没有 invokePPCI,用 invokePPI(long,long,short,long) 代替
+            int retVal = JNI.invokePPI(CURRENT_THREAD_PSEUDO_HANDLE, 0L, (short) 0, SetThreadSelectedCpuSetMasks);
             if (retVal == 0) {
                 throw new IllegalStateException();
             }
@@ -66,7 +76,7 @@ public class ThreadUtils {
                 MemoryUtil.memPutShort(ptr+i*16L+8L, groups[i]);
             }
 
-            int retVal = JNI.invokePPCI(Kernel32.GetCurrentThread(), ptr, (short)masks.length, SetThreadSelectedCpuSetMasks);
+            int retVal = JNI.invokePPI(CURRENT_THREAD_PSEUDO_HANDLE, ptr, (short)masks.length, SetThreadSelectedCpuSetMasks);
             if (retVal == 0) {
                 throw new IllegalStateException();
             }
@@ -78,7 +88,7 @@ public class ThreadUtils {
         if (SetThreadPriority == 0 || !isWindows) {
             return false;
         }
-        if (JNI.callPI(Kernel32.GetCurrentThread(), priority, SetThreadPriority)==0) {
+        if (JNI.invokePI(CURRENT_THREAD_PSEUDO_HANDLE, priority, SetThreadPriority)==0) {
             throw new IllegalStateException("Operation failed");
         }
         return true;

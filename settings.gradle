@@ -1,9 +1,9 @@
 pluginManagement {
     repositories {
-        maven {
-            name = 'Fabric'
-            url = 'https://maven.fabricmc.net/'
-        }
+        maven { url = 'https://maven.minecraftforge.net/' }
         gradlePluginPortal()
     }
 }
+
+// 注:org.gradle.toolchains.foojay-resolver-convention 用于自动下载 JDK 工具链,
+// 此处通过 JAVA_HOME 显式指定 JDK 17,故移除该插件以减少外部依赖。

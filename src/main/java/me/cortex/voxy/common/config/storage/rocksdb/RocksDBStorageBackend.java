@@ -62,7 +62,8 @@ public class RocksDBStorageBackend extends StorageBackend {
                 .setLevelCompactionDynamicLevelBytes(true)
                 .optimizeForPointLookup(128);
 
-        var bCache = new HyperClockCache(128*1024L*1024L,0, 4, false);
+        // 1.20.1 rocksdbjni 7.10.2 没有 HyperClockCache,用 ClockCache 替代 (构造器不同)
+        var bCache = new ClockCache(128*1024L*1024L, 4, false);
         var filter = new BloomFilter(10);
         cfWorldSecOpts.setTableFormatConfig(new BlockBasedTableConfig()
                 .setCacheIndexAndFilterBlocksWithHighPriority(true)
@@ -271,13 +272,8 @@ public class RocksDBStorageBackend extends StorageBackend {
     }
 
     private static long swizzlePos(long key) {
-        if (true) {
-            return key;
-        }
-        if (WorldEngine.POS_FORMAT_VERSION != 1) throw new IllegalStateException("TODO: UPDATE THIS");
-        return  (key&(0xFL<<60)) |
-                Long.expand((key>>> 4)&((1L<<24)-1), 0b01010101010101010101010101010101_001001001001001001001001L) |
-                Long.expand((key>>>52)&0xFF,         0b00000000000000000000000000000000_100100100100100100100100L) |
-                Long.expand((key>>>28)&((1L<<24)-1), 0b10101010101010101010101010101010_010010010010010010010010L);
+        // 1.20.1: Java 17 没有 Long.expand,且原代码 if(true) return key; 永远不会执行后续逻辑,
+        // 因此直接返回 key,删除死代码以避免编译错误。
+        return key;
     }
 }
