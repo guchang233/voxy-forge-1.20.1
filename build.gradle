@@ -114,6 +114,11 @@ configurations.configureEach {
             details.useVersion '3.3.1'
         }
     }
+    // 解决 lz4-java capability 冲突: Forge 依赖 at.yawk.lz4:lz4-java 与 org.lz4:lz4-java
+    // 都提供 org.lz4:lz4-java capability, 需要显式选择 org.lz4:lz4-java
+    resolutionStrategy.capabilitiesResolution.withCapability('org.lz4:lz4-java') {
+        select('org.lz4:lz4-java:0')
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {
