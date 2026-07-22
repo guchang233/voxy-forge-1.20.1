@@ -2,6 +2,9 @@ name: check-does-build
 
 on: [ push ]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -45,3 +48,40 @@ jobs:
 
       - name: Gradle build
         run: ./gradlew build --no-daemon
+
+      - name: Upload jar artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxy-forge-${{ github.run_number }}
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+      - name: Publish to continuous Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: continuous
+          name: VOXY Forge 1.20.1 (Continuous Build)
+          body: |
+            # VOXY Forge 1.20.1 持续构建
+
+            从 MC 1.21.7+ (Fabric/Java 25) 移植到 MC 1.20.1 (Forge 47.2.0/Java 17)。
+
+            ## 安装
+            1. 安装 Minecraft 1.20.1 + Forge 47.2.0+
+            2. 下载 `voxy-forge-*-all.jar` (含所有原生库)
+            3. 放入 `.minecraft/mods/` 目录
+            4. 推荐安装 Embeddium + Oculus 以获得 Sodium/Iris 兼容
+
+            ## 本次构建
+            - Commit: ${{ github.sha }}
+            - 构建号: ${{ github.run_number }}
+            - 触发者: ${{ github.actor }}
+            - 分支: ${{ github.ref_name }}
+
+            > 此 Release 会在每次推送时自动更新为最新构建。
+          files: |
+            build/libs/*-all.jar
+            build/libs/voxy-forge-*.jar
+          draft: false
+          prerelease: true
+          make_latest: false
