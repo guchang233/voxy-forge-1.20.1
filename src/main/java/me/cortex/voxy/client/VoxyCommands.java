@@ -92,6 +92,24 @@ public class VoxyCommands {
     }
 
     private static int reloadInstance(CommandContext<CommandSourceStack> ctx) {
+        try {
+            return reloadInstance0(ctx);
+        } catch (Throwable e) {
+            // 捕获所有异常 (包括 Error),把根因直接发给用户,
+            // 避免 Brigadier 包裹成 "试图执行该命令时出现意外错误"。
+            var root = e;
+            while (root.getCause() != null && root.getCause() != root) {
+                root = root.getCause();
+            }
+            var msg = Component.literal("Voxy reload failed: " + root.getClass().getSimpleName() + ": " + root.getMessage());
+            sendError(ctx, msg);
+            // 同时记录完整堆栈到日志
+            me.cortex.voxy.common.Logger.error("reloadInstance command failed", e);
+            return 1;
+        }
+    }
+
+    private static int reloadInstance0(CommandContext<CommandSourceStack> ctx) {
         // 如果 instance 为 null,尝试创建实例 (可能 sessionStart 未触发或创建失败)
         if (VoxyCommon.getInstance() == null) {
             if (!VoxyCommon.isAvailable()) {
