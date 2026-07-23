@@ -82,9 +82,11 @@ jobs:
 
             ## 安装
             1. 安装 Minecraft 1.20.1 + Forge 47.2.0+
-            2. 下载 `voxy-forge-*-all.jar` (71MB,包含所有原生库)
+            2. **下载 `voxy-forge-*-all.jar`** (含所有原生库,必须用这个版本)
             3. 放入 `.minecraft/mods/` 目录
             4. 推荐安装 Embeddium + Oculus 以获得 Sodium/Iris 兼容
+
+            > ⚠️ 不要下载精简版 jar (不含 -all),会因缺少原生库崩溃。
 
             ## 构建信息
             - Commit: ${{ github.sha }}
@@ -92,6 +94,5 @@ jobs:
             - 触发者: ${{ github.actor }}
           files: |
             build/libs/*-all.jar
-            build/libs/voxy-forge-*.jar
           draft: false
           prerelease: true
