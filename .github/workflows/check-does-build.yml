@@ -53,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: voxy-forge-${{ github.run_number }}
-          path: build/libs/*.jar
+          path: build/libs/*-all.jar
           if-no-files-found: error
 
       - name: Publish to continuous Release
