@@ -7,6 +7,7 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
+import me.cortex.voxy.client.config.VoxyConfig;
 import me.cortex.voxy.client.core.IVoxyRenderSystemHolder;
 import me.cortex.voxy.common.DebugUtils;
 import me.cortex.voxy.commonImpl.VoxyCommon;
@@ -91,10 +92,29 @@ public class VoxyCommands {
     }
 
     private static int reloadInstance(CommandContext<CommandSourceStack> ctx) {
-        var instance = VoxyCommon.getInstance();
-        if (instance == null) {
-            sendError(ctx, Component.translatable("Voxy must be enabled in settings to use this"));
-            return 1;
+        // 如果 instance 为 null,尝试创建实例 (可能 sessionStart 未触发或创建失败)
+        if (VoxyCommon.getInstance() == null) {
+            if (!VoxyCommon.isAvailable()) {
+                sendError(ctx, Component.literal("Voxy is not available (mod not initialized properly)"));
+                return 1;
+            }
+            if (!VoxyConfig.CONFIG.enabled) {
+                sendError(ctx, Component.literal("Voxy is disabled in config (set enabled=true in voxy-config.json)"));
+                return 1;
+            }
+            // 尝试创建实例
+            VoxyCommon.createInstance();
+            if (VoxyCommon.getInstance() == null) {
+                sendError(ctx, Component.literal("Failed to create Voxy instance, check logs for errors"));
+                return 1;
+            }
+            // 实例刚创建,尝试创建渲染器
+            var holder = IVoxyRenderSystemHolder.getNullableHolder();
+            if (holder != null) {
+                holder.voxy$createRenderer();
+            }
+            ctx.getSource().sendSystemMessage(Component.literal("Voxy instance created").setStyle(Style.EMPTY.withColor(0x55FF55)));
+            return 0;
         }
 
         var vrsh = IVoxyRenderSystemHolder.getNullableHolder();

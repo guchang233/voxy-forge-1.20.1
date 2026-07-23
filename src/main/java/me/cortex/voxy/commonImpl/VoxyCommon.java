@@ -77,6 +77,7 @@ public class VoxyCommon {
 
     public static void createInstance() {
         if (FACTORY == null) {
+            Logger.warn("Not creating instance, factory is null (VoxyCommon not initialized)");
             return;
         }
         if (INSTANCE != null) {
@@ -84,8 +85,13 @@ public class VoxyCommon {
         }
         try {
             INSTANCE = FACTORY.create();
+            Logger.info("Voxy instance created successfully");
         } catch (DontCreateInstance e) {
             Logger.info("Not creating instance due to DontCreateInstance");
+        } catch (RuntimeException e) {
+            // 捕获所有运行时异常,防止异常传播导致游戏崩溃或 mixin 注入失败。
+            // 记录错误日志,INSTANCE 保持 null,用户可通过 /voxy reload 重试。
+            Logger.error("Failed to create voxy instance", e);
         }
     }
 

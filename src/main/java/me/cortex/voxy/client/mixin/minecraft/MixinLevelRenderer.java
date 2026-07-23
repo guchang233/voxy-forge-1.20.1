@@ -67,6 +67,13 @@ public abstract class MixinLevelRenderer implements IVoxyRenderSystemHolder {
         if (Objects.equals(this.identifier, identifier)) return;
         this.voxy$shutdownRenderer();
         this.identifier = identifier;
+        // 设置 identifier 后尝试创建渲染器。
+        // 首次进入世界时,sessionStart 可能尚未执行 (instance 为 null),会安全跳过;
+        // sessionStart 创建 instance 后会再次调用 voxy$createRenderer。
+        // 若 sessionStart 已先执行过 (identifier 当时为 null 跳过),此处补充创建。
+        if (this.identifier != null) {
+            this.voxy$createRenderer();
+        }
     }
 
     @Override
