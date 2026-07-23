@@ -31,7 +31,8 @@ public abstract class MixinLevelRenderer implements IVoxyRenderSystemHolder {
         return this.renderer;
     }
 
-    @Inject(method = "close", at = @At("HEAD"))
+    // close 在 1.20.1 LevelRenderer 中 SRG 名也是 close (AutoCloseable),但部分构建是 m_85543_
+    @Inject(method = {"close", "m_85543_"}, at = @At("HEAD"))
     private void voxy$injectClose(CallbackInfo ci) {
         this.voxy$shutdownRenderer();
     }
@@ -41,7 +42,8 @@ public abstract class MixinLevelRenderer implements IVoxyRenderSystemHolder {
     // 注意:首次进入世界时,setLevel 在 handleLogin 内部调用,早于 sessionStart,
     // 此时 instance 可能为 null,voxy$createRenderer 会安全跳过。
     // 之后 sessionStart 创建 instance 后会再次调用 voxy$createRenderer。
-    @Inject(method = "setLevel", at = @At("TAIL"))
+    // SRG: m_109701_
+    @Inject(method = {"setLevel", "m_109701_"}, at = @At("TAIL"))
     private void voxy$injectSetLevel(ClientLevel level, CallbackInfo ci) {
         this.voxy$setWorld(level);
     }

@@ -21,7 +21,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(value = FogRenderer.class, priority = 900)
 public class MixinFogRenderer {
-    @Inject(method = "setupFog", at = @At("RETURN"))
+    // SRG: m_234172_
+    @Inject(method = {"setupFog", "m_234172_"}, at = @At("RETURN"))
     private void voxy$modifyFog(Camera camera, FogRenderer.FogMode fogMode, float farDistance, boolean fogFlag, float partialTick, CallbackInfo ci) {
         if (!VoxyConfig.CONFIG.isRenderingEnabled()) return;
 

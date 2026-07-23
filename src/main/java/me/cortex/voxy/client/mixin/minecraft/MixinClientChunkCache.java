@@ -41,7 +41,8 @@ public class MixinClientChunkCache implements ICheekyClientChunkCache {
     }
 
     // 1.20.1: ClientChunkCache.drop(int x, int z) 不是 drop(ChunkPos)
-    @Inject(method = "drop", at = @At("HEAD"))
+    // SRG: m_104455_
+    @Inject(method = {"drop", "m_104455_"}, at = @At("HEAD"))
     public void voxy$captureChunkBeforeUnload(int x, int z, CallbackInfo ci) {
         if (VoxyConfig.CONFIG.ingestEnabled && BOBBY_INSTALLED) {
             var chunk = this.voxy$cheekyGetChunk(x, z);

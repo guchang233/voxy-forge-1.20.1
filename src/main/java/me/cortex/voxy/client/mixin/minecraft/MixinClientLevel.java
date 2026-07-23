@@ -33,7 +33,8 @@ public abstract class MixinClientLevel {
 
     @Shadow public abstract ClientChunkCache getChunkSource();
 
-    @Inject(method = "setBlocksDirty", at = @At("TAIL"))
+    // SRG: m_6550_
+    @Inject(method = {"setBlocksDirty", "m_6550_"}, at = @At("TAIL"))
     private void voxy$injectIngestOnStateChange(BlockPos pos, BlockState old, BlockState updated, CallbackInfo cir) {
         if (old == updated) return;
 
