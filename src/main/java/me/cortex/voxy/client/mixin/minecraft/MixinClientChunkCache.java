@@ -4,7 +4,6 @@ import me.cortex.voxy.client.ICheekyClientChunkCache;
 import me.cortex.voxy.client.config.VoxyConfig;
 import me.cortex.voxy.common.world.service.VoxelIngestService;
 import net.minecraft.client.multiplayer.ClientChunkCache;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraftforge.fml.ModList;
 
@@ -41,10 +40,11 @@ public class MixinClientChunkCache implements ICheekyClientChunkCache {
         return null;
     }
 
+    // 1.20.1: ClientChunkCache.drop(int x, int z) 不是 drop(ChunkPos)
     @Inject(method = "drop", at = @At("HEAD"))
-    public void voxy$captureChunkBeforeUnload(ChunkPos pos, CallbackInfo ci) {
+    public void voxy$captureChunkBeforeUnload(int x, int z, CallbackInfo ci) {
         if (VoxyConfig.CONFIG.ingestEnabled && BOBBY_INSTALLED) {
-            var chunk = this.voxy$cheekyGetChunk(pos.x, pos.z);
+            var chunk = this.voxy$cheekyGetChunk(x, z);
             if (chunk != null) {
                 VoxelIngestService.tryAutoIngestChunk(chunk);
             }

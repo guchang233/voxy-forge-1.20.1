@@ -9,6 +9,7 @@ import me.cortex.voxy.common.Logger;
 import me.cortex.voxy.common.world.WorldEngine;
 import me.cortex.voxy.commonImpl.VoxyCommon;
 import me.cortex.voxy.commonImpl.WorldIdentifier;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.Nullable;
@@ -33,6 +34,16 @@ public abstract class MixinLevelRenderer implements IVoxyRenderSystemHolder {
     @Inject(method = "close", at = @At("HEAD"))
     private void voxy$injectClose(CallbackInfo ci) {
         this.voxy$shutdownRenderer();
+    }
+
+    // 1.20.1: LevelRenderer.setLevel(ClientLevel) 在切换/进入世界时调用。
+    // 在这里设置 identifier,并尝试创建渲染器。
+    // 注意:首次进入世界时,setLevel 在 handleLogin 内部调用,早于 sessionStart,
+    // 此时 instance 可能为 null,voxy$createRenderer 会安全跳过。
+    // 之后 sessionStart 创建 instance 后会再次调用 voxy$createRenderer。
+    @Inject(method = "setLevel", at = @At("TAIL"))
+    private void voxy$injectSetLevel(ClientLevel level, CallbackInfo ci) {
+        this.voxy$setWorld(level);
     }
 
     @Override

@@ -39,7 +39,11 @@ public class VoxyClientInstance extends VoxyInstance {
 
     @Override
     protected boolean shouldCreateInstance() {
-        return !this.config.disabled;
+        // 注意:此方法在父类 VoxyInstance 构造函数 (super()) 中被调用,
+        // 此时 this.config 尚未初始化 (为 null)。必须处理 null 情况,
+        // 否则会抛 NullPointerException,导致实例创建失败,
+        // 进而触发 "Voxy must be enabled in settings" 错误。
+        return this.config == null || !this.config.disabled;
     }
 
     @Override

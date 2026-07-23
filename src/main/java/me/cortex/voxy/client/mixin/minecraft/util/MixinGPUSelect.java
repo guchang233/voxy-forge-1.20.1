@@ -11,7 +11,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Minecraft.class)
 public class MixinGPUSelect {
-    @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Options;save()V", ordinal = 0))
+    // 1.20.1: Minecraft.<init> 不调用 Options.save() (1.21+ 才有),改用 RETURN 注入。
+    // GPU 选择在构造函数末尾执行,窗口可能已创建,GPU 选择功能受限但不影响核心逻辑。
+    @Inject(method = "<init>", at = @At("RETURN"))
     private void voxy$injectInitWindow(GameConfig gc, CallbackInfo ci) {
         //System.load("C:\\Program Files\\RenderDoc\\renderdoc.dll");
         var prop = System.getProperty("voxy.forceGpuSelectionIndex", "NO");
