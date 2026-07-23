@@ -163,6 +163,12 @@ tasks.withType(JavaCompile).configureEach {
 // ForgeGradle 6 默认禁用 jarJar 任务,需要显式启用以打包内嵌依赖
 tasks.named('jarJar').configure {
     enabled = true
+    // MixinGradle 默认只把 refmap 添加到 jar 任务,jarJar 任务需要手动包含,
+    // 否则 -all.jar 里没有 refmap,运行时 mixin 注入点找不到 SRG 方法名。
+    from("${buildDir}/tmp/compileJava/compileJava-refmap.json") {
+        rename { 'client.voxy.refmap.json' }
+    }
+    dependsOn(tasks.compileJava)
 }
 
 // Mixin Gradle 插件: 为 Forge 1.20.1 运行时 SRG 映射生成 refmap,
