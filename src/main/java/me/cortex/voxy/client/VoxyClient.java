@@ -1,5 +1,6 @@
 package me.cortex.voxy.client;
 
+import me.cortex.voxy.client.config.VoxyConfig;
 import me.cortex.voxy.common.Logger;
 import me.cortex.voxy.commonImpl.VoxyCommon;
 import net.minecraft.client.Minecraft;
@@ -44,6 +45,9 @@ public class VoxyClient {
         if (systemSupported) {
             // SharedIndexBuffer.INSTANCE.id() 已 stub,跳过
             VoxyCommon.setInstanceFactory(VoxyClientInstance::new);
+            // factory 注册后重新加载配置,确保 VoxyConfig 从磁盘加载/创建
+            // (静态初始化可能在 setInstanceFactory 之前执行,导致配置未写入磁盘)
+            VoxyConfig.reload();
         }
     }
 

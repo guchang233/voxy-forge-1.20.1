@@ -26,6 +26,19 @@ public class VoxyConfig {
 
     public static VoxyConfig CONFIG = loadOrCreate();
 
+    /**
+     * 在 VoxyCommon.setInstanceFactory 调用后重新加载配置。
+     *
+     * VoxyConfig 的静态初始化 (loadOrCreate) 可能在 setInstanceFactory 之前执行
+     * (例如被 Mixin 类首次引用),此时 VoxyCommon.isAvailable() 返回 false,
+     * 导致配置不写入磁盘且 enabled/enableRendering 被强制设为 false。
+     *
+     * 此方法在 factory 注册完成后调用,确保配置从磁盘正确加载或创建。
+     */
+    public static void reload() {
+        CONFIG = loadOrCreate();
+    }
+
     public boolean enabled = true;
     public boolean enableRendering = true;
     public boolean ingestEnabled = true;
