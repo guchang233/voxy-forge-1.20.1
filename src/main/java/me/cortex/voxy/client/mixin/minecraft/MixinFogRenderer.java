@@ -22,8 +22,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = FogRenderer.class, priority = 900)
 public class MixinFogRenderer {
     // SRG: m_234172_
+    // 1.20.1 的 FogRenderer.setupFog 是 static 方法,handler 必须也是 static
     @Inject(method = {"setupFog", "m_234172_"}, at = @At("RETURN"))
-    private void voxy$modifyFog(Camera camera, FogRenderer.FogMode fogMode, float farDistance, boolean fogFlag, float partialTick, CallbackInfo ci) {
+    private static void voxy$modifyFog(Camera camera, FogRenderer.FogMode fogMode, float farDistance, boolean fogFlag, float partialTick, CallbackInfo ci) {
         if (!VoxyConfig.CONFIG.isRenderingEnabled()) return;
 
         var vrs = IVoxyRenderSystemHolder.getNullable();
