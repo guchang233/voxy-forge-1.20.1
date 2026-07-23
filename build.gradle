@@ -14,6 +14,8 @@ buildscript {
         // ForgeGradle 6.0.x 在 forge maven 上有完整 jar 但无 plugin marker,
         // 因此用 buildscript classpath 而不是 plugins{} DSL
         classpath 'net.minecraftforge.gradle:ForgeGradle:6.0.54'
+        // MixinGradle 插件,用于生成 Forge 运行期 SRG 映射所需的 refmap
+        classpath 'org.spongepowered:mixingradle:0.7.+'
     }
 }
 
@@ -22,6 +24,8 @@ plugins {
 }
 
 apply plugin: 'net.minecraftforge.gradle'
+// Mixin Gradle 插件需要在 ForgeGradle 应用后应用,因为它依赖 minecraft/patcher 扩展
+apply plugin: 'org.spongepowered.mixin'
 
 version = project.mod_version
 group = project.maven_group
@@ -116,6 +120,10 @@ dependencies {
     jarJar(implementation('org.xerial:sqlite-jdbc:[3.42.0.0,4.0)')) {
         version { strictly '[3.42.0.0,4.0)'; prefer '3.42.0.0' }
     }
+
+    // Mixin annotation processor,用于生成 refmap (Forge 1.20.1 运行期 SRG 映射需要)
+    compileOnly 'org.spongepowered:mixin:0.8.5'
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
 // 配置 JarJar 内嵌依赖的版本范围
@@ -141,6 +149,9 @@ tasks.named('processResources', ProcessResources).configure {
     filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
         expand replaceProperties + [project: project]
     }
+
+    // MixinGradle 会自动把 refmap 打包进 jar。
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -152,6 +163,13 @@ tasks.withType(JavaCompile).configureEach {
 // ForgeGradle 6 默认禁用 jarJar 任务,需要显式启用以打包内嵌依赖
 tasks.named('jarJar').configure {
     enabled = true
+}
+
+// Mixin Gradle 插件: 为 Forge 1.20.1 运行时 SRG 映射生成 refmap,
+// 否则 mixin 注入点使用开发期 official 映射名,运行时找不到目标方法。
+mixin {
+    add sourceSets.main, 'client.voxy.refmap.json'
+    config 'client.voxy.mixins.json'
 }
 
 java {

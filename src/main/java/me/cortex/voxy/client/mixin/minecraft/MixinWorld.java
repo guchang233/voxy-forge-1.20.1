@@ -1,4 +1,4 @@
-package me.cortex.voxy.commonImpl.mixin.minecraft;
+package me.cortex.voxy.client.mixin.minecraft;
 
 import me.cortex.voxy.commonImpl.IWorldGetIdentifier;
 import me.cortex.voxy.commonImpl.WorldIdentifier;

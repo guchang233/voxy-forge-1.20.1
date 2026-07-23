@@ -17,6 +17,8 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -193,6 +195,11 @@ public class Serialization {
         }
     }
     private static List<String> collectAllClasses(Path base, String pack) {
+        // Forge 中 mod jar 可能是一个 zip 文件路径,需要特殊处理
+        if (Files.isRegularFile(base) && base.toString().endsWith(".jar")) {
+            return collectAllClassesFromJar(base, pack);
+        }
+
         if (!Files.exists(base.resolve(pack.replaceAll("[.]", "/")))) {
             return List.of();
         }
@@ -209,5 +216,24 @@ public class Serialization {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static List<String> collectAllClassesFromJar(Path jarPath, String pack) {
+        List<String> result = new ArrayList<>();
+        String prefix = pack.replace(".", "/") + "/";
+        try (JarFile jarFile = new JarFile(jarPath.toFile())) {
+            Enumeration<JarEntry> entries = jarFile.entries();
+            while (entries.hasMoreElements()) {
+                JarEntry entry = entries.nextElement();
+                String name = entry.getName();
+                if (name.startsWith(prefix) && name.endsWith(".class")) {
+                    String className = name.substring(0, name.length() - 6).replace("/", ".");
+                    result.add(className);
+                }
+            }
+        } catch (IOException e) {
+            Logger.error("Failed to collect classes from jar: " + jarPath, e);
+        }
+        return result;
     }
 }

@@ -2,6 +2,7 @@
   "required": true,
   "package": "me.cortex.voxy.client.mixin",
   "compatibilityLevel": "JAVA_17",
+  "refmap": "client.voxy.refmap.json",
   "client": [
     "minecraft.MixinClientChunkCache",
     "minecraft.MixinClientLevel",
@@ -9,7 +10,8 @@
     "minecraft.MixinLevelRenderer",
     "minecraft.session.MixinClientPacketListener",
     "minecraft.session.MixinMinecraft",
-    "minecraft.util.MixinGPUSelect"
+    "minecraft.util.MixinGPUSelect",
+    "minecraft.MixinWorld"
   ],
   "injectors": {
     "defaultRequire": 1
