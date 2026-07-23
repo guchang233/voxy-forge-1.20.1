@@ -60,7 +60,9 @@ public class ThreadUtils {
             // LWJGL 3.3.1 没有 invokePPCI,用 invokePPI(long,long,short,long) 代替
             int retVal = JNI.invokePPI(CURRENT_THREAD_PSEUDO_HANDLE, 0L, (short) 0, SetThreadSelectedCpuSetMasks);
             if (retVal == 0) {
-                throw new IllegalStateException();
+                // 1.20.1 移植:CPU 亲和性设置失败不应中断游戏启动(可能权限不足或函数不可用)
+                Logger.warn("SetThreadSelectedCpuSetMasks returned 0 (likely insufficient privilege), continuing without CPU set affinity");
+                return false;
             }
             return true;
         }
@@ -78,7 +80,8 @@ public class ThreadUtils {
 
             int retVal = JNI.invokePPI(CURRENT_THREAD_PSEUDO_HANDLE, ptr, (short)masks.length, SetThreadSelectedCpuSetMasks);
             if (retVal == 0) {
-                throw new IllegalStateException();
+                Logger.warn("SetThreadSelectedCpuSetMasks returned 0 (likely insufficient privilege), continuing without CPU set affinity");
+                return false;
             }
             return true;
         }
@@ -89,7 +92,9 @@ public class ThreadUtils {
             return false;
         }
         if (JNI.invokePI(CURRENT_THREAD_PSEUDO_HANDLE, priority, SetThreadPriority)==0) {
-            throw new IllegalStateException("Operation failed");
+            // 1.20.1 移植:线程优先级提升失败不应中断游戏启动(需要 SeIncreaseBasePriorityPrivilege)
+            Logger.warn("SetThreadPriority returned 0 for priority " + priority + " (likely insufficient privilege), continuing with default priority");
+            return false;
         }
         return true;
     }
@@ -106,7 +111,8 @@ public class ThreadUtils {
 
             int retVal = JNI.invokePPI(0, (long)masks.length*8, ptr, schedSetaffinity);
             if (retVal != 0) {
-                throw new IllegalStateException();
+                Logger.warn("sched_setaffinity returned " + retVal + ", continuing without CPU affinity");
+                return false;
             }
             return true;
         }
