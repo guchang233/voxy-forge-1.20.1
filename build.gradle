@@ -78,13 +78,21 @@ dependencies {
     // 使用 Forge 的 JarJar 机制打包到 mod jar 里
     // 注意: Forge JarJar 要求版本范围格式 (Maven range),不能直接用纯版本号
     // 同时用 implementation 保证在编译类路径上,jarJar 保证打包进 jar
-    jarJar(implementation('org.lwjgl:lwjgl:[3.3.1,4.0)')) {
-        version { strictly '[3.3.1,4.0)'; prefer '3.3.1' }
-    }
+    //
+    // ⚠️ lwjgl 核心 (org.lwjgl:lwjgl) 不能 jarJar 内嵌: MC 1.20.1 自带 LWJGL 3.3.1,
+    //    内嵌会导致 JPMS split package 冲突 (Modules lwjgl and org.lwjgl export package ...)。
+    //    只内嵌 MC 不提供的子模块 lwjgl-lmdb 和 lwjgl-zstd。
+    //    lwjgl 核心用 compileOnly 保证编译期可用,运行期由 MC 提供。
+    compileOnly 'org.lwjgl:lwjgl:3.3.1'
+    compileOnly 'org.lwjgl:lwjgl-lmdb:3.3.1'
+    compileOnly 'org.lwjgl:lwjgl-zstd:3.3.1'
+    // jarJar 打包 lwjgl 子模块,排除 lwjgl 核心传递依赖 (MC 自带,内嵌会导致 split package)
     jarJar(implementation('org.lwjgl:lwjgl-lmdb:[3.3.1,4.0)')) {
+        exclude group: 'org.lwjgl', module: 'lwjgl'
         version { strictly '[3.3.1,4.0)'; prefer '3.3.1' }
     }
     jarJar(implementation('org.lwjgl:lwjgl-zstd:[3.3.1,4.0)')) {
+        exclude group: 'org.lwjgl', module: 'lwjgl'
         version { strictly '[3.3.1,4.0)'; prefer '3.3.1' }
     }
     jarJar(implementation('org.rocksdb:rocksdbjni:[7.10.2,8.0)')) {
