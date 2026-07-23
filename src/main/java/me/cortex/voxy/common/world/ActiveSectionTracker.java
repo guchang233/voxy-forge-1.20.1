@@ -179,10 +179,21 @@ public final class ActiveSectionTracker {
         } else {
             //TODO: mark the time the loading started in nanos, then here if it has been a while, spin lock, else jump back to the executing service and do work
             VarHandle.fullFence();
+            // 1.20.1 移植:原为无超时自旋等待 loader 线程填充 section,
+            // 若 loader 线程异常会导致永久阻塞。改为带超时(默认 10s)等待,
+            // 超时后返回 null 并记录警告,避免 render 线程永久卡死。
+            long __waitStart = System.nanoTime();
+            long __timeoutNanos = 10_000_000_000L; // 10s
             while ((section = holder.obj) == null) {
                 VarHandle.fullFence();
                 Thread.onSpinWait();
                 Thread.yield();
+                if ((System.nanoTime() - __waitStart) > __timeoutNanos) {
+                    Logger.warn("ActiveSectionTracker.acquire timed out waiting for section " + key + " after 10s, returning null");
+                    // 回滚 PRE_ACQUIRE_COUNT 避免计数泄漏
+                    VolatileHolder.PRE_ACQUIRE_COUNT.getAndAdd(holder, -1);
+                    return null;
+                }
             }
 
             //Try to acquire a pre lock

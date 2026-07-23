@@ -99,20 +99,28 @@ public abstract class MixinLevelRenderer implements IVoxyRenderSystemHolder {
             Logger.info("Not creating renderer due to null instance");
             return;
         }
+        String __thread = Thread.currentThread().getName();
+        long __engineStart = System.nanoTime();
         WorldEngine world = this.identifier.getOrCreateEngine(true);
+        Logger.info("getOrCreateEngine took " + ((System.nanoTime() - __engineStart) / 1_000_000) + "ms on thread " + __thread);
         if (world == null) {
             Logger.warn("Not creating renderer due to null engine");
             return;
         }
+        long __start = System.nanoTime();
         this.voxy$createEngineDirect(world);
+        Logger.info("voxy$createRenderer took " + ((System.nanoTime() - __start) / 1_000_000) + "ms on thread " + __thread);
     }
 
     @Unique
     private void voxy$createEngineDirect(WorldEngine world) {
         var instance = world.instanceIn;
         if (instance == null) throw new IllegalStateException();//in theory this could be null if is like in a test suit or something
+        String __thread = Thread.currentThread().getName();
         try {
+            long __renderStart = System.nanoTime();
             this.renderer = new VoxyRenderSystem(world, instance.getServiceManager());
+            Logger.info("new VoxyRenderSystem took " + ((System.nanoTime() - __renderStart) / 1_000_000) + "ms on thread " + __thread);
         } catch (RuntimeException e) {
             if (IrisUtil.irisShaderPackEnabled()) {
                 IrisUtil.disableIrisShaders();

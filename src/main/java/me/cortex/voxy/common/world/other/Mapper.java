@@ -107,7 +107,10 @@ public class Mapper {
         // SharedConstants.getGameVersion().dataVersion().id()
         // then use this to create an update path instead
 
+        long __methodStart = System.nanoTime();
+        long __dataStart = System.nanoTime();
         var mappings = this.storage.getIdMappingsData();
+        Logger.info("Mapper.getIdMappingsData took " + ((System.nanoTime() - __dataStart) / 1_000_000) + "ms");
         List<StateEntry> sentries = new ArrayList<>();
         List<BiomeEntry> bentries = new ArrayList<>();
         List<Pair<byte[], Integer>> sentryErrors = new ArrayList<>();
@@ -174,6 +177,10 @@ public class Mapper {
             Logger.warn("Forced state resave triggered");
             this.forceResaveStates();
         }
+
+        Logger.info("Mapper.loadFromStorage loaded " + this.blockId2stateEntry.size() + " block states, "
+                + this.biomeId2biomeEntry.size() + " biomes in "
+                + ((System.nanoTime() - __methodStart) / 1_000_000) + "ms");
     }
 
     public final int getBlockStateCount() {

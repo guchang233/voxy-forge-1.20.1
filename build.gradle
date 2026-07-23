@@ -43,6 +43,9 @@ minecraft {
             workingDirectory project.file('run')
             property 'forge.logging.markers', 'REGISTRIES'
             property 'forge.logging.console.level', 'debug'
+            // 容器环境(cgroup v2)下 Java 17.0.x 读取 cgroup 时可能 NPE,
+            // 禁用容器支持绕过该问题,不影响游戏逻辑
+            jvmArgs '-XX:-UseContainerSupport'
             mods {
                 voxy {
                     source sourceSets.main
